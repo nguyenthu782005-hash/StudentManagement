@@ -5,12 +5,20 @@ namespace ConnectDB
 {
     public class AppDbContext : DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options)
-            : base(options)
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
         }
 
-        public DbSet<Student> Students { get; set; }
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder.UseSqlServer(
+                    "Server=THU\\SQLEXPRESS;Database=StudentDB_Net8;Trusted_Connection=True;TrustServerCertificate=True;"
+                );
+            }
+        }
+
         public DbSet<User> Users { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<ProductVariant> ProductVariants { get; set; }
@@ -28,28 +36,21 @@ namespace ConnectDB
         {
             base.OnModelCreating(modelBuilder);
 
-            // UNIQUE
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
 
-            modelBuilder.Entity<Coupon>()
-                .HasIndex(c => c.Code)
-                .IsUnique();
-
-            // CATEGORY (self reference)
             modelBuilder.Entity<Category>()
                 .HasOne<Category>()
                 .WithMany()
                 .HasForeignKey(c => c.ParentId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // PRODUCT
             modelBuilder.Entity<Product>()
                 .HasOne(p => p.Category)
                 .WithMany(c => c.Products)
                 .HasForeignKey(p => p.CategoryId)
-                .OnDelete(DeleteBehavior.Restrict); // ⚠️ tránh cascade dây chuyền
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Product>()
                 .HasOne(p => p.Brand)
@@ -57,32 +58,25 @@ namespace ConnectDB
                 .HasForeignKey(p => p.BrandId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // PRODUCT VARIANT
             modelBuilder.Entity<ProductVariant>()
                 .HasOne(v => v.Product)
                 .WithMany(p => p.Variants)
-                .HasForeignKey(v => v.ProductId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(v => v.ProductId);
 
-            // ORDER
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.User)
                 .WithMany(u => u.Orders)
-                .HasForeignKey(o => o.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(o => o.UserId);
 
-            // ORDER ITEM
             modelBuilder.Entity<OrderItem>()
                 .HasOne(oi => oi.Order)
                 .WithMany(o => o.OrderItems)
-                .HasForeignKey(oi => oi.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(oi => oi.OrderId);
 
             modelBuilder.Entity<OrderItem>()
                 .HasOne(oi => oi.Product)
                 .WithMany()
-                .HasForeignKey(oi => oi.ProductId)
-                .OnDelete(DeleteBehavior.Restrict); // 🔥 FIX LỖI
+                .HasForeignKey(oi => oi.ProductId);
 
             modelBuilder.Entity<OrderItem>()
                 .HasOne(oi => oi.Variant)
@@ -90,46 +84,40 @@ namespace ConnectDB
                 .HasForeignKey(oi => oi.VariantId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // CART
             modelBuilder.Entity<Cart>()
                 .HasMany(c => c.CartItems)
                 .WithOne(ci => ci.Cart)
-                .HasForeignKey(ci => ci.CartId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(ci => ci.CartId);
 
             modelBuilder.Entity<CartItem>()
                 .HasOne(ci => ci.Product)
                 .WithMany()
-                .HasForeignKey(ci => ci.ProductId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .HasForeignKey(ci => ci.ProductId);
 
-            // WISHLIST
             modelBuilder.Entity<Wishlist>()
                 .HasOne(w => w.User)
                 .WithMany()
-                .HasForeignKey(w => w.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(w => w.UserId);
 
             modelBuilder.Entity<Wishlist>()
                 .HasOne(w => w.Product)
                 .WithMany()
-                .HasForeignKey(w => w.ProductId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .HasForeignKey(w => w.ProductId);
 
-            // REVIEW
             modelBuilder.Entity<Review>()
                 .HasOne(r => r.Product)
                 .WithMany(p => p.Reviews)
-                .HasForeignKey(r => r.ProductId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(r => r.ProductId);
 
             modelBuilder.Entity<Review>()
                 .HasOne(r => r.User)
                 .WithMany(u => u.Reviews)
-                .HasForeignKey(r => r.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(r => r.UserId);
 
-            // DECIMAL PRECISION
+            modelBuilder.Entity<Coupon>()
+                .HasIndex(c => c.Code)
+                .IsUnique();
+
             modelBuilder.Entity<Product>().Property(p => p.Price).HasPrecision(18, 2);
             modelBuilder.Entity<Product>().Property(p => p.SalePrice).HasPrecision(18, 2);
             modelBuilder.Entity<ProductVariant>().Property(v => v.Price).HasPrecision(18, 2);

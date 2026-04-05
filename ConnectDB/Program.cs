@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using ConnectDB.Data;
+using ConnectDB.Models;
 namespace ConnectDB
 {
     public class Program
@@ -17,6 +17,7 @@ namespace ConnectDB
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddControllers();
 
             var app = builder.Build();
 
@@ -30,7 +31,6 @@ namespace ConnectDB
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 
