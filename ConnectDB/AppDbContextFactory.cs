@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
 namespace ConnectDB
@@ -9,9 +9,8 @@ namespace ConnectDB
         {
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
 
-            optionsBuilder.UseSqlServer(
-                "Server=THU\\SQLEXPRESS;Database=StudentDB_Net8;Trusted_Connection=True;TrustServerCertificate=True;"
-            );
+            // Ép buộc dùng Npgsql cho Design Time (Migration generation)
+            optionsBuilder.UseNpgsql("Host=localhost;Database=dummy;Username=dummy;Password=dummy");
 
             return new AppDbContext(optionsBuilder.Options);
         }

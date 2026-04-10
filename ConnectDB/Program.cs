@@ -9,8 +9,7 @@ namespace ConnectDB
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Cấu hình Database
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+            // Cấu hình Database: Mặc định luôn sử dụng PostgreSQL
             var postgresConnection = builder.Configuration.GetConnectionString("PostgresConnection");
 
             // Xử lý link postgres:// từ Render nếu có
@@ -21,13 +20,15 @@ namespace ConnectDB
 
             builder.Services.AddDbContext<AppDbContext>(options =>
             {
+                // Chỉ sử dụng PostgreSQL
                 if (!string.IsNullOrEmpty(postgresConnection))
                 {
                     options.UseNpgsql(postgresConnection);
                 }
                 else
                 {
-                    options.UseSqlServer(connectionString);
+                    // Fallback to a dummy for build/migration time if env var is missing
+                    options.UseNpgsql("Host=localhost;Database=dummy;Username=dummy;Password=dummy");
                 }
             });
 
@@ -38,21 +39,22 @@ namespace ConnectDB
             var app = builder.Build();
 
             // Tự động chạy Migration để tạo bảng dữ liệu khi khởi động
-            if (!string.IsNullOrEmpty(postgresConnection))
+            using (var scope = app.Services.CreateScope())
             {
-                using (var scope = app.Services.CreateScope())
+                var services = scope.ServiceProvider;
+                try
                 {
-                    var services = scope.ServiceProvider;
-                    try
+                    var context = services.GetRequiredService<AppDbContext>();
+                    // Chỉ chạy migrate nếu là SQL thực sự (trên Render)
+                    if (!string.IsNullOrEmpty(postgresConnection) && postgresConnection.Contains("Password"))
                     {
-                        var context = services.GetRequiredService<AppDbContext>();
                         context.Database.Migrate();
                         Console.WriteLine("Database migration applied successfully.");
                     }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"An error occurred while migrating the database: {ex.Message}");
-                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"An error occurred while migrating the database: {ex.Message}");
                 }
             }
 
@@ -86,7 +88,6 @@ namespace ConnectDB
             }
             catch
             {
-                // Nếu lỗi định dạng thì trả về chuỗi gốc để Npgsql tự xử lý (nếu được)
                 return url;
             }
         }
