@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ConnectDB.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260403064625_FixProductCategory")]
-    partial class FixProductCategory
+    [Migration("20260410084159_InitialPostgres")]
+    partial class InitialPostgres
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
