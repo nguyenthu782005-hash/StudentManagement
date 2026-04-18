@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace ConnectDB.Models
 {
@@ -17,6 +17,7 @@ namespace ConnectDB.Models
         public int MaxUses { get; set; }
         public int UsedCount { get; set; }
 
+        public DateTime StartDate { get; set; } = DateTime.Now;
         public DateTime ExpiryDate { get; set; }
     }
 }

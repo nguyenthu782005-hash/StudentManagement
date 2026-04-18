@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ConnectDB.Models;
 
@@ -40,10 +40,13 @@ namespace ConnectDB.Controllers
         [HttpPost]
         public async Task<ActionResult<Brand>> PostBrand(Brand brand)
         {
+            if (string.IsNullOrEmpty(brand.Logo)) brand.Logo = "";
+            if (string.IsNullOrEmpty(brand.Description)) brand.Description = "";
+
             _context.Brands.Add(brand);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetBrand), new { id = brand.BrandId }, brand);
+            return Ok(brand);
         }
 
         // PUT: api/Brands/5

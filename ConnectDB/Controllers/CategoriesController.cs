@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ConnectDB.Models;
 
@@ -40,10 +40,14 @@ namespace ConnectDB.Controllers
         [HttpPost]
         public async Task<ActionResult<Category>> PostCategory(Category category)
         {
+            if (string.IsNullOrEmpty(category.Slug)) category.Slug = "";
+            if (string.IsNullOrEmpty(category.Image)) category.Image = "";
+            if (string.IsNullOrEmpty(category.Description)) category.Description = "";
+
             _context.Categories.Add(category);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetCategory), new { id = category.CategoryId }, category);
+            return Ok(category);
         }
 
         // PUT: api/Categories/5

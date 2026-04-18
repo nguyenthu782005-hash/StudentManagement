@@ -361,3 +361,8 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Database and Uploads
+pgsql/
+pgsql.zip
+upload/

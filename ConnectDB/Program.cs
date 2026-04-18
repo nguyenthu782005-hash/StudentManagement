@@ -7,46 +7,53 @@ namespace ConnectDB
     {
         public static void Main(string[] args)
         {
+            // Fix PostgreSQL DateTime issues
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
             var builder = WebApplication.CreateBuilder(args);
 
-            // Cấu hình Database: Mặc định luôn sử dụng PostgreSQL
-            var postgresConnection = builder.Configuration.GetConnectionString("PostgresConnection");
+            // Connect to PostgreSQL
+            var connectionString = builder.Configuration.GetConnectionString("PostgresConnection");
 
-            // Xử lý link postgres:// từ Render nếu có
-            if (!string.IsNullOrEmpty(postgresConnection) && postgresConnection.StartsWith("postgres"))
+            // Handle Render's postgres:// URL if applicable
+            if (!string.IsNullOrEmpty(connectionString) && connectionString.StartsWith("postgres"))
             {
-                postgresConnection = ParsePostgresUrl(postgresConnection);
+                connectionString = ParsePostgresUrl(connectionString);
+            }
+
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new InvalidOperationException("Connection string 'PostgresConnection' not found.");
             }
 
             builder.Services.AddDbContext<AppDbContext>(options =>
             {
-                // Chỉ sử dụng PostgreSQL
-                if (!string.IsNullOrEmpty(postgresConnection))
-                {
-                    options.UseNpgsql(postgresConnection);
-                }
-                else
-                {
-                    // Fallback to a dummy for build/migration time if env var is missing
-                    options.UseNpgsql("Host=localhost;Database=dummy;Username=dummy;Password=dummy");
-                }
+                options.UseNpgsql(connectionString);
             });
 
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            // Add CORS support
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll",
+                    builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+            });
+
             var app = builder.Build();
 
-            // Tự động chạy Migration để tạo bảng dữ liệu khi khởi động
+            // Automatic Migration
             using (var scope = app.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
                 try
                 {
                     var context = services.GetRequiredService<AppDbContext>();
-                    // Chỉ chạy migrate nếu là SQL thực sự (trên Render)
-                    if (!string.IsNullOrEmpty(postgresConnection) && postgresConnection.Contains("Password"))
+                    // Only migrate if we are not using localhost (usually production/Render)
+                    // Or you can always migrate if you want local DB to stay updated.
+                    if (!connectionString.Contains("localhost"))
                     {
                         context.Database.Migrate();
                         Console.WriteLine("Database migration applied successfully.");
@@ -60,6 +67,9 @@ namespace ConnectDB
 
             app.UseSwagger();
             app.UseSwaggerUI();
+
+            // Use CORS
+            app.UseCors("AllowAll");
 
             app.UseHttpsRedirection();
             app.UseAuthorization();

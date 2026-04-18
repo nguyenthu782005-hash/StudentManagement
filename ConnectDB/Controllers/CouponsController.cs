@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ConnectDB.Models;
 
@@ -75,6 +75,9 @@ namespace ConnectDB.Controllers
 
             if (coupon == null)
                 return BadRequest("Invalid coupon");
+
+            if (coupon.StartDate > DateTime.Now)
+                return BadRequest("Coupon not yet active");
 
             if (coupon.ExpiryDate < DateTime.Now)
                 return BadRequest("Coupon expired");
