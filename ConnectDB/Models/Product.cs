@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
@@ -19,6 +19,9 @@ namespace ConnectDB.Models
 
         public string Description { get; set; } = string.Empty;
         public string Image { get; set; } = string.Empty;
+        public string? Image1 { get; set; }
+        public string? Image2 { get; set; }
+        public string? Image3 { get; set; }
 
         public int Stock { get; set; }
         public int Views { get; set; }
@@ -33,7 +36,6 @@ namespace ConnectDB.Models
 
         public Brand? Brand { get; set; }
 
-        [JsonIgnore]
         public ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
 
         [JsonIgnore]

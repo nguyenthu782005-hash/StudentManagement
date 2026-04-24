@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace ConnectDB.Models
@@ -17,13 +17,15 @@ namespace ConnectDB.Models
         public string PaymentMethod { get; set; } = string.Empty;
 
         public string Note { get; set; } = string.Empty;
+        public string ReceiverName { get; set; } = string.Empty;
+        public string ReceiverPhone { get; set; } = string.Empty;
+        public string ShippingAddress { get; set; } = string.Empty;
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? UpdatedAt { get; set; }
 
         public int UserId { get; set; }
 
-        [JsonIgnore]
         public User? User { get; set; }
 
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();

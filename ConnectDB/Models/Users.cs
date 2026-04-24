@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace ConnectDB.Models
 {
@@ -26,7 +27,13 @@ namespace ConnectDB.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        // Password Reset
+        public string? ResetToken { get; set; }
+        public DateTime? ResetTokenExpiry { get; set; }
+
+        [JsonIgnore]
         public ICollection<Order> Orders { get; set; } = new List<Order>();
+        [JsonIgnore]
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
     }
 }

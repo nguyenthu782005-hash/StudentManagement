@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace ConnectDB.Models
@@ -15,10 +15,7 @@ namespace ConnectDB.Models
         public int? VariantId { get; set; }
         public int OrderId { get; set; }
 
-        [JsonIgnore]
         public Product? Product { get; set; }
-
-        [JsonIgnore]
         public ProductVariant? Variant { get; set; }
 
         [JsonIgnore]

@@ -1,5 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using ConnectDB.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using ConnectDB.Services;
 
 namespace ConnectDB
 {
@@ -31,9 +35,34 @@ namespace ConnectDB
                 options.UseNpgsql(connectionString);
             });
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+                    options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+                });
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            
+            builder.Services.AddScoped<JwtService>();
+            builder.Services.AddScoped<InvoiceService>();
+            builder.Services.AddScoped<EmailService>();
+            builder.Services.AddMemoryCache();
+
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "ClothStore",
+                        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "ClothStoreClient",
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "this_is_a_very_long_secret_key_for_jwt_auth_12345"))
+                    };
+                });
 
             // Add CORS support
             builder.Services.AddCors(options =>
@@ -58,6 +87,9 @@ namespace ConnectDB
                         context.Database.Migrate();
                         Console.WriteLine("Database migration applied successfully.");
                     }
+                    
+                    // Seed data
+                    ConnectDB.Data.DataSeeder.Seed(context);
                 }
                 catch (Exception ex)
                 {
@@ -70,8 +102,10 @@ namespace ConnectDB
 
             // Use CORS
             app.UseCors("AllowAll");
+            app.UseStaticFiles();
 
             app.UseHttpsRedirection();
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapGet("/", () => "API is running! Visit /swagger to test the endpoints.");
@@ -81,7 +115,7 @@ namespace ConnectDB
             app.Run();
         }
 
-        // Hàm hỗ trợ chuyển đổi URI postgres:// sang Connection String chuẩn của Npgsql
+        // HÃ m há»— trá»£ chuyá»ƒn Ä‘á»•i URI postgres:// sang Connection String chuáº©n cá»§a Npgsql
         private static string ParsePostgresUrl(string url)
         {
             try

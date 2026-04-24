@@ -1,26 +1,39 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ConnectDB.Models;
+using ConnectDB.Services;
 
 namespace ConnectDB.Controllers
 {
+    public class OrderUpdateDto
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public string Status { get; set; } = string.Empty;
+    }
+
     [Route("api/[controller]")]
     [ApiController]
     public class OrdersController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly InvoiceService _invoiceService;
 
-        public OrdersController(AppDbContext context)
+        public OrdersController(AppDbContext context, InvoiceService invoiceService)
         {
             _context = context;
+            _invoiceService = invoiceService;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetOrders()
         {
             return Ok(await _context.Orders
+                .Include(o => o.User)
                 .Include(o => o.OrderItems)
-                .ThenInclude(oi => oi.Product)
+                    .ThenInclude(oi => oi.Product)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Variant)
+                .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync());
         }
 
@@ -28,8 +41,11 @@ namespace ConnectDB.Controllers
         public async Task<IActionResult> GetOrder(int id)
         {
             var order = await _context.Orders
+                .Include(o => o.User)
                 .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Product)
+                .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Variant)
                 .FirstOrDefaultAsync(o => o.OrderId == id);
 
             if (order == null)
@@ -45,23 +61,30 @@ namespace ConnectDB.Controllers
             _context.Orders.Add(order);
             await _context.SaveChangesAsync();
 
-            return Ok(order);
+            // Load full order details with products to return to frontend
+            var fullOrder = await _context.Orders
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Product)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Variant)
+                .FirstOrDefaultAsync(o => o.OrderId == order.OrderId);
+
+            return Ok(fullOrder);
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateOrder(int id, Order updatedOrder)
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> UpdateOrderStatus(int id, [FromQuery] string status)
         {
-            if (id != updatedOrder.OrderId)
-                return BadRequest();
-
             var order = await _context.Orders.FindAsync(id);
             if (order == null)
                 return NotFound();
 
-            order.Status = updatedOrder.Status;
-            order.UpdatedAt = DateTime.Now;
-
-            await _context.SaveChangesAsync();
+            if (!string.IsNullOrEmpty(status))
+            {
+                order.Status = status;
+                order.UpdatedAt = DateTime.Now;
+                await _context.SaveChangesAsync();
+            }
 
             return Ok(order);
         }
@@ -103,13 +126,14 @@ namespace ConnectDB.Controllers
 
             foreach (var item in cart.CartItems)
             {
-                var price = item.Product.Price;
+                var price = item.Product.SalePrice ?? item.Product.Price;
 
                 total += price * item.Quantity;
 
                 order.OrderItems.Add(new OrderItem
                 {
                     ProductId = item.ProductId,
+                    VariantId = item.VariantId,
                     Quantity = item.Quantity,
                     PriceAtPurchase = price
                 });
@@ -124,7 +148,49 @@ namespace ConnectDB.Controllers
 
             await _context.SaveChangesAsync();
 
-            return Ok(order);
+            // Load full order details with products to return to frontend
+            var fullOrder = await _context.Orders
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Product)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Variant)
+                .FirstOrDefaultAsync(o => o.OrderId == order.OrderId);
+
+            return Ok(fullOrder);
+        }
+
+        [HttpGet("{id}/invoice")]
+        public async Task<IActionResult> GetInvoice(int id)
+        {
+            var order = await _context.Orders
+                .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Product)
+                .FirstOrDefaultAsync(o => o.OrderId == id);
+
+            if (order == null)
+                return NotFound();
+
+            var pdfBytes = _invoiceService.GenerateInvoicePdf(order);
+            return File(pdfBytes, "application/pdf", $"Invoice_{order.OrderId}.pdf");
+        }
+
+        [HttpPost("{id}/refund")]
+        public async Task<IActionResult> RefundOrder(int id)
+        {
+            var order = await _context.Orders.FindAsync(id);
+            if (order == null) return NotFound();
+
+            if (order.Status != "Paid")
+            {
+                return BadRequest(new { message = "Chỉ có thể hoàn tiền đơn hàng đã thanh toán." });
+            }
+
+            // Gọi API hoàn tiền của VNPay thực tế ở đây. 
+            // Demo: Tự động đổi trạng thái thành "Refunded"
+            order.Status = "Refunded";
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Đã yêu cầu hoàn tiền thành công." });
         }
     }
 }

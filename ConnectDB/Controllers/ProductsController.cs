@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ConnectDB.Models;
 
@@ -22,6 +22,7 @@ namespace ConnectDB.Controllers
             var products = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Brand)
+                .Include(p => p.Variants)
                 .ToListAsync();
 
             return Ok(products);
@@ -34,6 +35,7 @@ namespace ConnectDB.Controllers
             var product = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Brand)
+                .Include(p => p.Variants)
                 .FirstOrDefaultAsync(p => p.ProductId == id);
 
             if (product == null)

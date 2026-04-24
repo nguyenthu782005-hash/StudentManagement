@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ConnectDB.Models;
 
@@ -21,6 +21,8 @@ namespace ConnectDB.Controllers
             var cart = await _context.Carts
                 .Include(c => c.CartItems)
                 .ThenInclude(ci => ci.Product)
+                .Include(c => c.CartItems)
+                .ThenInclude(ci => ci.Variant)
                 .FirstOrDefaultAsync(c => c.UserId == userId);
 
             if (cart == null)
@@ -30,7 +32,7 @@ namespace ConnectDB.Controllers
         }
 
         [HttpPost("add")]
-        public async Task<IActionResult> AddToCart(int userId, int productId, int quantity)
+        public async Task<IActionResult> AddToCart(int userId, int productId, int quantity, int? variantId = null)
         {
             var cart = await _context.Carts
                 .Include(c => c.CartItems)
@@ -47,7 +49,7 @@ namespace ConnectDB.Controllers
             }
 
             var existingItem = cart.CartItems
-                .FirstOrDefault(ci => ci.ProductId == productId);
+                .FirstOrDefault(ci => ci.ProductId == productId && ci.VariantId == variantId);
 
             if (existingItem != null)
             {
@@ -58,6 +60,7 @@ namespace ConnectDB.Controllers
                 cart.CartItems.Add(new CartItem
                 {
                     ProductId = productId,
+                    VariantId = variantId,
                     Quantity = quantity
                 });
             }
