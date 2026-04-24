@@ -7,28 +7,32 @@ namespace ConnectDB.Data
     {
         public static void Seed(AppDbContext context)
         {
-            if (!context.Users.Any())
+            var adminUser = context.Users.FirstOrDefault(u => u.Email == "admin@example.com");
+            if (adminUser == null)
             {
-                context.Users.AddRange(
-                    new User 
-                    { 
-                        Name = "Admin User", 
-                        Email = "admin@example.com", 
-                        Password = "123", 
-                        Role = "Admin",
-                        Phone = "0123456789",
-                        Address = "123 Admin St"
-                    },
-                    new User 
-                    { 
-                        Name = "Customer User", 
-                        Email = "customer@example.com", 
-                        Password = "123", 
-                        Role = "customer",
-                        Phone = "0987654321",
-                        Address = "456 Customer Ave"
-                    }
-                );
+                context.Users.Add(new User 
+                { 
+                    Name = "Admin User", 
+                    Email = "admin@example.com", 
+                    Password = "123", 
+                    Role = "Admin",
+                    Phone = "0123456789",
+                    Address = "123 Admin St"
+                });
+                context.SaveChanges();
+            }
+
+            if (!context.Users.Any(u => u.Email == "customer@example.com"))
+            {
+                context.Users.Add(new User 
+                { 
+                    Name = "Customer User", 
+                    Email = "customer@example.com", 
+                    Password = "123", 
+                    Role = "customer",
+                    Phone = "0987654321",
+                    Address = "456 Customer Ave"
+                });
                 context.SaveChanges();
             }
 

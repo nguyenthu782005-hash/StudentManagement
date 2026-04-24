@@ -34,14 +34,20 @@ namespace ConnectDB.Controllers
 
             if (user != null)
             {
-                try
+                if (user.Password == request.Password)
                 {
-                    isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.Password);
+                    isPasswordValid = true;
                 }
-                catch (BCrypt.Net.SaltParseException)
+                else
                 {
-                    // Fallback for plain text passwords during development
-                    isPasswordValid = (user.Password == request.Password);
+                    try
+                    {
+                        isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.Password);
+                    }
+                    catch
+                    {
+                        isPasswordValid = false;
+                    }
                 }
             }
 
